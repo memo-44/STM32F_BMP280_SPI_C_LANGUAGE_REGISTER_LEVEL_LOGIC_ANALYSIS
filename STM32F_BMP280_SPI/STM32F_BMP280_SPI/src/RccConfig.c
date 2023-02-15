@@ -1,0 +1,70 @@
+/*
+ * RccConfig.c
+ *
+ *  Created on: 3 Kas 2022
+ *      Author: mehme
+ */
+
+
+
+/*****************THE PROCEDURE OF RCC CONFIGURATION ARE GIVEN FOLLOWING****************/
+/*
+ * 1-ENABLE HSE AND TO CHECK READY FLAG OF HSE.
+ * 2-SET POWER CLOCK ENABLE AND VOLTAGE REGULATOR.
+ * 3-CONFIGURE AHB,APB1 AND APB2.
+ * 4-SET PLL CONFIGURATION.
+ * 5-ENABLE PLL AND CHECK READY FLAG OF PLL.
+ * 6-ENABLE DATA,INSTRUCTION CACHE,PREFETCH AND TO CONFIGURE LATENCY FROM FLASH ACCESS CR.
+ * 7-SELECT SYSTEM CLOCK AS PLL CLOCK SOURCE AND CHECK PLL USED AS THE SYSTME CLOCK.
+ * 8-UPDATE SYSTEM CLOCK.
+ */
+
+
+
+#include <RccConfig.h>
+
+void SysClk(void){
+
+	RCC->CR |= (1<<16);          //HSE CLOCK SOURCE ENABLE
+	while(!(RCC->CR & (1<<17))); //CHECK TO HSE ENABLE FLAG
+
+	   // Enable high performance mode, System frequency up to 168 MHz
+	RCC->APB1ENR |=(1<<28);    //
+	PWR->CR |=(3<<14);		   //SCALE 1 MODE SELECTED
+
+	//PWR->CR |=(3<<14);->>THIS BITS CONTROLS THE MAIN INTERNAL VOLTAGE REGULATOR OUTPUT VOLTAGE
+	//ACHIVE A TRADE-OFF BETWEEN PERFORMANCE AND POWER CONSUNPTION WHEN DEVICE NOT OPERATE AT
+	//TH MAX FREQUENCY
+
+
+	RCC->CFGR &=~(1<<4);       //CHOOSE AHB1 DIVIDED VALUE
+	RCC->CFGR |=(5<<10);       //CHOOSE APB1 DIVIDED VALUE
+	RCC->CFGR |=(4<<13);       //CHOOSE APB2 DIVIDED VALUE
+
+
+	RCC->PLLCFGR=0;            //RESET PLL CONF REGISTER
+	RCC->PLLCFGR |=(4<<0);     //SET M VALUE
+	RCC->PLLCFGR |=(160<<6);   //SET N VALUE
+	RCC->PLLCFGR &=~(1<<16);   //SET P VALUE
+	RCC->PLLCFGR |=(5<<24);    //SET Q VALUE
+	RCC->PLLCFGR |=(1<<22);    //PLL SOURCE SELECTED AS HSE
+
+	RCC->CR |=(1<<24);             //PLL ENABLE
+	while(!(RCC->CR & (1<<25)));   //CHECK TO PLL READY FLAG
+
+
+	FLASH->ACR |=(1<<8);   //PREFETCH ENABLE
+	FLASH->ACR |=(1<<9);   //INSTRUCTION CACHE ENABLE
+	FLASH->ACR |=(1<<10);  //DATA CACHE ENABLE
+	FLASH->ACR |=(5<<0);   //These bits represent the ratio of the CPU clock period to the Flash
+						   //Flash memory access time.
+
+
+	RCC->CFGR &=(uint32_t)((uint32_t)~(0x00000003));
+	RCC->CFGR |=(2<<0);    //PLL SOURCE SWÝTCHED SYSTEM CLOCK
+	while (!(RCC->CFGR & (2<<2)));
+
+	SystemCoreClockUpdate();
+
+}
+
